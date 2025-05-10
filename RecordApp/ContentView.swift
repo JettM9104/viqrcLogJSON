@@ -7,8 +7,10 @@ struct Record: Identifiable, Codable, Equatable {
     var name: String
     var selectedOption: String
     var scale: Int
+    var secondScale: Float  // New Scale
     var additionalInfo: String
     var yesOrNo: Bool
+    var secondYesOrNo: Bool  // New Yes/No
     var numberList: [Double]
 }
 
@@ -75,17 +77,8 @@ struct ContentView: View {
                         RecordFormView(record: record) { updated in
                             store.update(updated)
                         }
-                    } lab: {
-                        VStack(alignment: .leading) {
-                            Text(record.name).bold()
-                            Text("Option: \(record.selectedOption), Scale: \(record.scale), Yes/No: \(record.yesOrNo ? "Yes" : "No")")
-                                .font(.subheadline)
-                            if !record.numberList.isEmpty {
-                                Text("Numbers: \(record.numberList.map { String($0) }.joined(separator: ", "))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                    } label: {
+                        RecordRowView(record: record)
                     }
                 }
                 .onDelete(perform: store.delete)
@@ -109,7 +102,32 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Record Form Vie
+// MARK: - Row View
+
+struct RecordRowView: View {
+    let record: Record
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(record.name).bold()
+
+            let yesNoText = record.yesOrNo ? "Yes" : "No"
+            let secondYesNoText = record.secondYesOrNo ? "Yes" : "No"
+
+            Text("Option: \(record.selectedOption), Scale1: \(record.scale), Scale2: \(record.secondScale), Yes/No1: \(yesNoText), Yes/No2: \(secondYesNoText)")
+                .font(.subheadline)
+
+            if !record.numberList.isEmpty {
+                let numbersText = record.numberList.map { String($0) }.joined(separator: ", ")
+                Text("Numbers: \(numbersText)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Record Form View
 
 struct RecordFormView: View {
     var record: Record?
@@ -121,8 +139,10 @@ struct RecordFormView: View {
     @State private var selectedOption = ""
     @State private var customOption = ""
     @State private var scale: Double = 5
+    @State private var secondScale: Double = 5  // New Scale state
     @State private var additionalInfo = ""
     @State private var yesOrNo = false
+    @State private var secondYesOrNo = false  // New Yes/No state
     @State private var numberListText = ""
 
     let options = ["Hero Bot", "Improved Hero Bot", "Backroller w/ T Fling", "Backroller Bot", "Dual Flywheel", "Single FLywheel", "Other"]
@@ -131,9 +151,9 @@ struct RecordFormView: View {
         NavigationStack {
             Form {
                 Section(header: Text("Basic Info")) {
-                    TextField("Name", text: $name)
+                    TextField("Team Number", text: $name)
 
-                    Picker("Multiple Choice", selection: $selectedOption) {
+                    Picker("Robot Type", selection: $selectedOption) {
                         ForEach(options, id: \.self) { Text($0) }
                     }
 
@@ -141,15 +161,22 @@ struct RecordFormView: View {
                         TextField("Custom Option", text: $customOption)
                     }
 
-                    Slider(value: $scale, in: 1...10, step: 1) {
-                        Text("Scale")
+                    Slider(value: $scale, in: 0...10, step: 1) {
+                        Text("Intake Speed")
                     }
-                    Text("Scale: \(Int(scale))")
+                    Text("Intake Speed: \(Int(scale))")
 
-                    Toggle("Yes or No", isOn: $yesOrNo)
+                    Slider(value: $secondScale, in: 0...3, step: 0.25) {
+                        Text("Shooter Speed")
+                    }
+                    Text("Maximum Distance from cl. wall (ft): \(String(format: "%.2f", secondScale))")
+
+
+                    Toggle("Able to China Load", isOn: $yesOrNo)
+                    Toggle("Can start in center", isOn: $secondYesOrNo)
                 }
 
-                Section(header: Text("List of Numbers")) {
+                Section(header: Text("Practice Scores")) {
                     TextField("Comma-separated numbers (e.g. 1, 2.5, 3)", text: $numberListText)
                         .keyboardType(.numbersAndPunctuation)
                 }
@@ -172,8 +199,10 @@ struct RecordFormView: View {
                             name: name,
                             selectedOption: finalOption,
                             scale: Int(scale),
+                            secondScale: Float(secondScale),
                             additionalInfo: additionalInfo,
                             yesOrNo: yesOrNo,
+                            secondYesOrNo: secondYesOrNo,
                             numberList: numberList
                         )
 
@@ -193,12 +222,20 @@ struct RecordFormView: View {
                     selectedOption = options.contains(record.selectedOption) ? record.selectedOption : "Other"
                     customOption = options.contains(record.selectedOption) ? "" : record.selectedOption
                     scale = Double(record.scale)
+                    secondScale = Double(record.secondScale)
                     additionalInfo = record.additionalInfo
                     yesOrNo = record.yesOrNo
+                    secondYesOrNo = record.secondYesOrNo
                     numberListText = record.numberList.map { String($0) }.joined(separator: ", ")
                 }
             }
         }
+    }
+}
+
+extension Double {
+    var clean: String {
+        return self.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", self) : String(format: "%.2f", self)
     }
 }
 
